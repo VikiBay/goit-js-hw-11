@@ -14,7 +14,7 @@ const searchParams = new URLSearchParams({
 export default class PixabayApiService {
 constructor(){
     this.query = '';
-    this.per_page = 200;
+    this.per_page = 40;
     this.page = 1;
 }
 

@@ -5,23 +5,59 @@ import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
 let lightbox = new SimpleLightbox('.gallery a', { captionDelay:250, captionsData:"alt" });
 
+let options = {
+  root: null,
+  rootMargin: '100px',
+  threshold: 1.0
+}
 
+let observer = new IntersectionObserver(observerCallback, options);
+let target = document.querySelector('.target-js');
+observer.observe(target);
+
+function observerCallback (entries, observer) {
+  entries.forEach((entry) => {
+    console.log(entry)
+    if(entry.isIntersecting){
+      console.log("isIntersecting")
+      onLoadMore()
+    }
+    // Each entry describes an intersection change for one observed
+    // target element:
+    //   entry.boundingClientRect
+    //   entry.intersectionRatio
+    //   entry.intersectionRect
+    //   entry.isIntersecting
+    //   entry.rootBounds
+    //   entry.target
+    //   entry.time
+  });
+};
 
 const gallery = document.querySelector('.gallery');
 const form = document.querySelector('#search-form');
-const loadMore = document.querySelector('.load-more');
+// const loadMore = document.querySelector('.load-more');
 
-loadMore.setAttribute('hidden', true);
+// loadMore.setAttribute('hidden', true);
+
+const { height: cardHeight } = document
+  .querySelector(".gallery")
+  .firstElementChild.getBoundingClientRect();
+
+window.scrollBy({
+  top: cardHeight * 2,
+  behavior: "smooth",
+});
 
 form.addEventListener('submit', onSearch);
-loadMore.addEventListener('click', onLoadMore);
+// loadMore.addEventListener('click', onLoadMore);
 
 function onSearch(evt) {
   evt.preventDefault();
 
   clearGallery();
-  loadMore.removeAttribute("hidden")
-  loadMore.setAttribute('disabled', true)
+  // loadMore.removeAttribute("hidden")
+  // loadMore.setAttribute('disabled', true)
   const { search } = form.elements;
   pixabayApiService.query = search.value;
   pixabayApiService.resetPage()
@@ -30,11 +66,13 @@ function onSearch(evt) {
     if (parseInt(response.data.totalHits) > 0) {
       console.log("response", response);
       appendCatsMarkup(response.data.hits);
-      // lightbox.refresh()
+      lightbox.refresh()
       if(Math.ceil(response.data.total/pixabayApiService.per_page)===pixabayApiService.page){
-        loadMore.setAttribute("hidden", true)
-      } else{
-      loadMore.removeAttribute("disabled")}
+        observer.unobserve(target)
+        // loadMore.setAttribute("hidden", true)
+      } 
+      // else{
+      // loadMore.removeAttribute("disabled")}
 
     } else console.log('No hits');
   });
@@ -45,31 +83,11 @@ function markUpGallery(imgsArr) {
   return imgsArr
     .map(
       item =>
-        // `<div class = "gallery__item">
-        // <a class="gallery__item" href="${item.largeImageURL}">
-        // <img class="gallery__image" src="${item.webformatURL}" alt="${item.tags}" loading="lazy"/>
-        // </a>
-        // <div class="info">
-        //   <p class="info-item">
-        //     <b>Likes</b>${item.likes}
-        //   </p>
-        //   <p class="info-item">
-        //     <b>Views</b>${item.views}
-        //   </p>
-        //   <p class="info-item">
-        //     <b>Comments</b>${item.comments}
-        //   </p>
-        //   <p class="info-item">
-        //     <b>Downloads</b>${item.downloads}
-        //   </p>
-        // </div>
-        // </div>
-        // `
-
-        
-        `<a class="gallery__item" href="${item.largeImageURL}">
+        `<div class = "gallery__item">
+        <a href="${item.largeImageURL}">
         <img class="gallery__image" src="${item.webformatURL}" alt="${item.tags}" loading="lazy"/>
-          <div class="info">
+        </a>
+        <div class="info">
           <p class="info-item">
             <b>Likes</b>${item.likes}
           </p>
@@ -82,33 +100,31 @@ function markUpGallery(imgsArr) {
           <p class="info-item">
             <b>Downloads</b>${item.downloads}
           </p>
-        </div></a>`
-    ).join('');
+        </div>
+        </div>`
+        ).join('');
   
 }
 
 
 function appendCatsMarkup(hits){
   gallery.insertAdjacentHTML('beforeend', markUpGallery(hits));
-  // lightbox.refresh()
+  lightbox.refresh()
 }
 
 
 function onLoadMore() {
   // pixabayApiService.getImage().then(resp=>appendCatsMarkup(resp.data.hits))
-  loadMore.setAttribute('disabled', true)
+  // loadMore.setAttribute('disabled', true)
   pixabayApiService.incrementPage();
   pixabayApiService.fetchImages().then(response => {
     if (parseInt(response.data.totalHits) > 0) {
       appendCatsMarkup(response.data.hits);
-      loadMore.removeAttribute("disabled")
-      console.log("response", response);
-      console.log("page", pixabayApiService.page);
-      console.log("response.data.total", response.data.total)
-      console.log("searchParams.per_page", pixabayApiService.per_page)
-      console.log(Math.ceil(response.data.total/pixabayApiService.per_page))
+      // loadMore.removeAttribute("disabled")
+
       if(Math.ceil(response.data.total/pixabayApiService.per_page)===pixabayApiService.page){
-        loadMore.setAttribute("hidden", true)
+        observer.unobserve(target)
+        // loadMore.setAttribute("hidden", true)
       }
     } else console.log('No hits');
   });
