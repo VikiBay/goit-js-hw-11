@@ -1,26 +1,32 @@
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
+
 import PixabayApiService from './pixabayApi';
 const pixabayApiService = new PixabayApiService();
 
-import SimpleLightbox from "simplelightbox";
-import "simplelightbox/dist/simple-lightbox.min.css";
-let lightbox = new SimpleLightbox('.gallery a', { captionDelay:250, captionsData:"alt" });
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+let lightbox = new SimpleLightbox('.gallery a', {
+  captionDelay: 250,
+  captionsData: 'alt',
+});
 
 let options = {
   root: null,
   rootMargin: '100px',
-  threshold: 1.0
-}
+  threshold: 1.0,
+};
 
 let observer = new IntersectionObserver(observerCallback, options);
 let target = document.querySelector('.target-js');
-observer.observe(target);
 
-function observerCallback (entries, observer) {
-  entries.forEach((entry) => {
-    console.log(entry)
-    if(entry.isIntersecting){
-      console.log("isIntersecting")
-      onLoadMore()
+// observer.root.style.border = "2px solid #44aa44";
+
+function observerCallback(entries, observer) {
+  entries.forEach(entry => {
+    console.log(entry);
+    if (entry.isIntersecting) {
+      console.log('isIntersecting');
+      onLoadMore();
     }
     // Each entry describes an intersection change for one observed
     // target element:
@@ -32,22 +38,13 @@ function observerCallback (entries, observer) {
     //   entry.target
     //   entry.time
   });
-};
+}
 
 const gallery = document.querySelector('.gallery');
 const form = document.querySelector('#search-form');
 // const loadMore = document.querySelector('.load-more');
 
 // loadMore.setAttribute('hidden', true);
-
-const { height: cardHeight } = document
-  .querySelector(".gallery")
-  .firstElementChild.getBoundingClientRect();
-
-window.scrollBy({
-  top: cardHeight * 2,
-  behavior: "smooth",
-});
 
 form.addEventListener('submit', onSearch);
 // loadMore.addEventListener('click', onLoadMore);
@@ -60,21 +57,30 @@ function onSearch(evt) {
   // loadMore.setAttribute('disabled', true)
   const { search } = form.elements;
   pixabayApiService.query = search.value;
-  pixabayApiService.resetPage()
-  
+  pixabayApiService.resetPage();
+
   pixabayApiService.fetchImages().then(response => {
     if (parseInt(response.data.totalHits) > 0) {
-      console.log("response", response);
+      Notify.success(`There are ${response.data.total} pics found!`);
+      
       appendCatsMarkup(response.data.hits);
-      lightbox.refresh()
-      if(Math.ceil(response.data.total/pixabayApiService.per_page)===pixabayApiService.page){
-        observer.unobserve(target)
+
+      lightbox.refresh();
+
+      observer.observe(target);
+      
+      
+      
+      if (
+        Math.ceil(response.data.total / pixabayApiService.per_page) ===
+        pixabayApiService.page
+      ) {
+        observer.unobserve(target);
         // loadMore.setAttribute("hidden", true)
-      } 
+      }
       // else{
       // loadMore.removeAttribute("disabled")}
-
-    } else console.log('No hits');
+    } else Notify.failure('Sorry, there are no images matching your search query. Please try again.');
   });
 }
 
@@ -102,16 +108,14 @@ function markUpGallery(imgsArr) {
           </p>
         </div>
         </div>`
-        ).join('');
-  
+    )
+    .join('');
 }
 
-
-function appendCatsMarkup(hits){
+function appendCatsMarkup(hits) {
   gallery.insertAdjacentHTML('beforeend', markUpGallery(hits));
-  lightbox.refresh()
+  lightbox.refresh();
 }
-
 
 function onLoadMore() {
   // pixabayApiService.getImage().then(resp=>appendCatsMarkup(resp.data.hits))
@@ -121,15 +125,25 @@ function onLoadMore() {
     if (parseInt(response.data.totalHits) > 0) {
       appendCatsMarkup(response.data.hits);
       // loadMore.removeAttribute("disabled")
-
-      if(Math.ceil(response.data.total/pixabayApiService.per_page)===pixabayApiService.page){
-        observer.unobserve(target)
+      const { height: cardHeight } = document
+      .querySelector('.gallery')
+      .firstElementChild.getBoundingClientRect();
+    window.scrollBy({
+      top: cardHeight * 2,
+      behavior: 'smooth',
+    });
+    
+      if (
+        Math.ceil(response.data.total / pixabayApiService.per_page) ===
+        pixabayApiService.page
+      ) {
+        observer.unobserve(target);
         // loadMore.setAttribute("hidden", true)
       }
     } else console.log('No hits');
   });
 }
 
-function clearGallery(){
+function clearGallery() {
   gallery.innerHTML = '';
 }
